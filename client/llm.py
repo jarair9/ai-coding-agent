@@ -1,6 +1,6 @@
 import json
 from config.setting import get_client, get_model
-from openai import AuthenticationError, RateLimitError, APIError, APIConnectionError, APITimeoutError
+from openai import AuthenticationError, RateLimitError, APIError, APIConnectionError, APITimeoutError, OpenAIError
 import asyncio
 from tools.base import execute_tool
 from tools.tool_schema import Tools
@@ -141,7 +141,9 @@ class llmClient:
                 except AuthenticationError as e:
                     yield {"type": "error", "error": f"Authentication Error: {e}"}
                     return
-
+                except OpenAIError:
+                    yield {"type" : "error","error": "Missing Credentails add API_KEY and BASE_URL in env file and try Again..."}
+                    return
         # Max rounds reached without final answer
         yield {"type": "error", "error": f"Max rounds ({MAX_ROUNDS}) reached"}
 

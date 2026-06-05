@@ -66,7 +66,7 @@ Tools = [
                         "description": "Case-insensitive search (default: false)"
                     }
                 },
-                "required": ["path", "pattern", "case_insensitive"]
+                "required": ["path", "pattern"]
             }
         }
     },

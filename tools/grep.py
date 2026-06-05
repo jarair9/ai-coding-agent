@@ -4,8 +4,8 @@ from pathlib import Path
 import re
 import sys
 
-# Ensure project root is in sys.path
-sys.path.append(str(Path(__file__).resolve().parent.parent))
+
+# sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 # Import the functions correctly
 from config.setting import is_binary_file, resolve_paths, get_cwd

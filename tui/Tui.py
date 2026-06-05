@@ -1,20 +1,14 @@
 
-
-import asyncio
-import difflib
 from pathlib import Path
 from rich.spinner import Spinner
 from rich.panel import Panel
-from rich.console import Console
-from rich.live import Live
+from rich.console import Console , Group
 from rich.text import Text
-from rich.table import Table
 from rich import print
-from rich.syntax import Syntax
 from rich.live import Live
+from rich.syntax import Syntax
 from rich.panel import Panel
-from rich import box
-
+from rich.text import Text
 
 class TUI:
     def __init__(self):
@@ -31,37 +25,34 @@ class TUI:
         self.console.print(panel)
 
 
-    def code_ui(self, code, tool_name):
-        # Safety: if code is None or empty, show a fallback
+    def read_file_ui(self, code, tool_name,file_path):
+        lang = self.get_language(file_path=file_path)
+       
         if code is None or code == "":
             fallback = "[yellow]No content to display (file may be empty or binary)[/yellow]"
-            panel = Panel(fallback, title=tool_name, title_align="center", expand=True, style="dim")
+            panel = Panel(fallback, title=f"{tool_name} : {file_path}", title_align="center", expand=True, style="dim")
             self.console.print(panel)
             return
 
-        # Ensure code is a string
+      
         if not isinstance(code, str):
             code = str(code)
 
-        # Now safe to create Syntax
+      
         syntax = Syntax(
             code,
-            "python",   # or auto-detect from file extension
+            lang,   
             theme="monokai",
             
-            # line_numbers=True
+           
         )
         panel = Panel(syntax, title=tool_name, title_align="center", expand=True,highlight=True)
         self.console.print(panel)
 
-    def write_code_ui(self, content, tool_name):
-        if not content or content == "":
-            content = "[File content is empty]"
-        syntax = Syntax(content, "python", theme="monokai", line_numbers=True)
-        panel = Panel(syntax, title=tool_name, border_style="green")
-        self.console.print(panel)
+    
+        
+        
     def get_language(self, file_path: str) -> str:
-        """Return a language name for syntax highlighting based on file extension."""
         ext = Path(file_path).suffix.lower()
         lang_map = {
             ".py": "python",
@@ -78,31 +69,56 @@ class TUI:
         }
         return lang_map.get(ext, "text")
     
-    def diff_panels(self, old_content: str, new_content: str, path: str):
-        """Show old content (red) and new content (syntax highlighted) in two panels."""
-        lang = self.get_language(path)   # implement auto‑detect
-        old_panel = Panel(
-            Syntax(old_content, lang, theme="monokai") if old_content else "[italic]empty[/italic]",
-            title="[red]Old version[/red]",
-            border_style="red"
-        )
-        new_panel = Panel(
-            Syntax(new_content, lang, theme="monokai") if new_content else "[italic]empty[/italic]",
-            title="[green]New version[/green]",
-            border_style="green"
-        )
-        self.console.print(old_panel)
-        self.console.print(new_panel)
     
-    def white_panel(self, content, title):
-        if isinstance(content, list):
-            content = "\n".join(str(item) for item in content)
-        panel = Panel(content, title=title, expand=True, highlight=True)
+    
+    def edit_file(self,old_content,new_content,file_path):
+        lang = self.get_language(file_path=file_path)
+
+        group = Group(
+            Text("old:", style="bold red"),
+            
+            Text(f"{old_content}", style="red"),
+            Text(""),
+            Text("new:", style="bold green"),
+            Syntax(
+                new_content,
+                lang,
+                theme="monokai",
+                line_numbers=True
+            )
+        )
+                
+        self.console.print(
+            Panel(group, title=f"edit_file: {file_path}")
+        )       
+    
+    def write_file(self,content,file_path,tool_name):
+        lang = self.get_language(file_path=file_path)
+        if content is None or content == "":
+            fallback = "[yellow]No content to display (file may be empty or binary)[/yellow]"
+            panel = Panel(fallback, title=f"{tool_name} : {file_path}", title_align="center", expand=True, style="dim")
+            self.console.print(panel)
+            return
+
+      
+        # if not isinstance(content, str):
+        #     code = str(content)
+
+      
+        syntax = Syntax(
+            content,
+            lang,   
+            theme="monokai",
+            line_numbers=True
+            
+           
+        )
+        panel = Panel(syntax, title=tool_name, title_align="center", expand=True,highlight=True)
         self.console.print(panel)
 
             
     def white_panel(self, content, title):
-        # Convert content to a readable string
+
         if content is None:
             content_str = "[No content]"
         elif isinstance(content, list):
@@ -112,43 +128,31 @@ class TUI:
         else:
             content_str = str(content)
         
-        # If still empty, show a placeholder
+     
         if not content_str.strip():
             content_str = "[Empty directory or no files]"
         
         panel = Panel(content_str, title=title, expand=True, highlight=True,style="green")
         self.console.print(panel)
+        
     def shell_panel(self, content: str,colour : str ,title: str = "shell", ):
         if not content or content.strip() == "":
             content = "[No output]"
         panel = Panel(content, title=f"[{colour}]{title}[/{colour}]", border_style="red", expand=True)
         self.console.print(panel)   
 
+    
+    def start_tool_spinner(self, tool_name):
+        self.live = Live(
+            Text(f"⠋ {tool_name}", style="yellow"),
+            refresh_per_second=60,
+            transient=True,  # important
+            console=self.console
+        )
+        self.live.start()
 
+    def stop_tool_spinner(self):
+        if hasattr(self, "live") and self.live:
+            self.live.stop()
+            self.live = None
 
-    async def status_indicator(self,generator,status):
-        """Wrap an async generator to show a spinner until first chunk arrives."""
-        first_chunk_received = False
-        spinner_task = None
-
-        async def show_spinner():
-            with self.console.status(f"[bold yellow]{status}...[/bold yellow]", spinner="dots"):
-                while not first_chunk_received:
-                    await asyncio.sleep(0.1)
-
-        # Start the spinner in a background task
-        spinner_task = asyncio.create_task(show_spinner())
-
-        try:
-            async for chunk in generator:
-                if not first_chunk_received:
-                    first_chunk_received = True
-                    spinner_task.cancel()
-                    try:
-                        await spinner_task
-                    except asyncio.CancelledError:
-                        pass
-                yield chunk
-        finally:
-            if not first_chunk_received:
-                spinner_task.cancel()

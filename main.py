@@ -4,17 +4,11 @@ from config.setting import get_model
 from context.memory import ContextManager
 from tui.Tui import TUI
 from colorama import Fore
+from rich.text import Text
 import os
-import sys
-import atexit
 
-# # Clear screen
 os.system('cls' if os.name == 'nt' else 'clear')
 
-# # Hide cursor
-sys.stdout.write('\033[?25l')
-sys.stdout.flush()
-atexit.register(lambda: sys.stdout.write('\033[?25h'))  # restore on exit
 
 llm = llmClient()
 manager = ContextManager()
@@ -30,42 +24,47 @@ async def main():
         if user.lower() == "exit":
             break
         elif user.startswith("/") and user == "/usage":
-            usage = manager.usage_stats()
-            print(usage)
-            continue
+           pass
 
         manager.add_user_message(user)
-        async for chunk in tui.status_indicator(llm.streaming_response(), status="Thinking"):
-            # if isinstance(chunk, dict) or "type" not in chunk:
-            #     continue
+        async for chunk in llm.streaming_response():
+           
             if chunk["type"] == "text":
                 content = chunk["content"]
-                print(f"{Fore.GREEN}{content}{Fore.RESET}", end="", flush=True)
+                tui.console.print(
+                    Text(content, style="green"),
+                    end=""
+                )
 
             elif chunk["type"] == "tool_call":
                 pending_tool_name = chunk["tool_call"]["tool_name"]
                 pending_tool_args = chunk["tool_call"]["tool_args"]
-
+                # tool_spinner = None
+                tui.start_tool_spinner(pending_tool_name)
+                
+                
             elif chunk["type"] == "tool_result":
-                # Add newline to separate from streaming text
+                tui.stop_tool_spinner()
                 print()
                 tool_result = chunk["tool_result"]
 
                 
                 if pending_tool_name == "read_file":
-                    # If tool_result is a list, take the first element (assuming single result)
                     if isinstance(tool_result, list) and tool_result:
                         tool_result = tool_result[0]
-
+                        
+                    if pending_tool_args.get("path",""):
+                        path = pending_tool_args.get("path","")
                     if isinstance(tool_result, dict) and tool_result.get("success"):
-                        # Try to extract content – it could be at 'content', 'result', or nested
+                        
                         content = tool_result.get("content") or tool_result.get("result")
                         if isinstance(content, dict):
                             content = content.get("content") or content.get("result") or ""
+                            
                         if not content:
                             content = tool_result.get("output", "")
                         if content:
-                            tui.code_ui(content, tool_name="read_file")
+                            tui.read_file_ui(content, tool_name="read_file",file_path=path)
                         else:
                             tui.error("Read file returned empty content")
                     else:
@@ -77,20 +76,21 @@ async def main():
                     path = pending_tool_args.get("path", "unknown")
                     content = pending_tool_args.get("content" , "Empty")
                     
-                    tui.write_code_ui(content=content,tool_name=f"write file : {path}")
+                    tui.write_file(content=content,tool_name=f"write file",file_path=path)
                     
                     if not content or not path:
                         tui.error(tool_result.get("error", "Write failed"))
                    
 
 
-
+                # the edit ui should be like old text in red colour and new in green
+                
                 elif pending_tool_name == "edit_file":
-                    if isinstance(tool_result, dict) and tool_result.get("success"):
-                        old = tool_result.get("old_content", "")
-                        new = tool_result.get("new_content", "")
-                        path = tool_result.get("path", "unknown")
-                        tui.diff_panels(old, new, path)
+                    if pending_tool_args:
+                        old_content = pending_tool_args.get("new_content","")
+                        new_content = pending_tool_args.get("old_content","")
+                        file_path = pending_tool_args.get("path","")
+                        tui.edit_file(old_content=old_content,new_content=new_content,file_path=file_path)
                     else:
                         tui.error(tool_result.get("error", "Edit failed"))
 
@@ -149,15 +149,16 @@ async def main():
                     command = pending_tool_args.get("command","unknown")
                     tui.shell_panel(content=command,colour="cyan")
                     if isinstance(tool_result, dict):
-                        # Try top‑level first, then inside "result"
+                        
                         output = tool_result.get("output")
                         if output is None:
                             inner = tool_result.get("result", {})
                             if isinstance(inner, dict):
                                 output = inner.get("output")
                         if not output and tool_result.get("success"):
-                            # Fallback: maybe the result is a plain string
+                            
                             output = tool_result.get("result") if isinstance(tool_result.get("result"), str) else ""
+                            
                         if not output:
                             output = "[No output]"
                         tui.shell_panel(output, title="shell",colour="green")
@@ -171,14 +172,11 @@ async def main():
             elif chunk["type"] == "error":
                 tui.error(chunk["error"])
 
-
-
-                pending_tool_name = None
-                pending_tool_args = None
+        pending_tool_name = None
+        pending_tool_args = None
 
             
-            # elif chunk["type"] == "complete":
-            #     print("\n[Response complete]\n")
+          
 
 if __name__ == "__main__":
     asyncio.run(main())

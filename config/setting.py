@@ -17,7 +17,7 @@ def get_client() -> AsyncOpenAI :
 
 def get_model() -> str:
 
-    return   "gpt-oss-120b" #"zai-glm-4.7"
+    return   "zai-glm-4.7"#"gpt-oss-120b" 
 
 
 

@@ -15,12 +15,10 @@ class ContextManager:
     cached_token: int = 0
 
     tokenizer = get_tokenizer(get_model())
-    # estimated token for pruning
-    token_usage:  int = 0 # default to 0
     CONTEXT_WINDOW = get_context_window()
 
-    threshold_tokens = int((CONTEXT_WINDOW * 80) / 100)   # 6553 tokens (80%)
-    critical_tokens = int((CONTEXT_WINDOW * 95) / 100)    # 7782 tokens (95%)
+    threshold_tokens = int((CONTEXT_WINDOW * 80) / 100)   
+    critical_tokens = int((CONTEXT_WINDOW * 95) / 100)    
 
 
     def usage_tracker(self,prompt_token,completion_token,cached_token):
@@ -38,33 +36,43 @@ class ContextManager:
             "cached": self.cached_token
         }
     def count_token(self ,messages) -> None:
+        total = 0
         for msg in messages:
-            token = len(self.tokenizer(msg["content"]))
-            self.token_usage += token
+            msg_str = json.dumps(msg,default=str, ensure_ascii=False)
+            token = len(self.tokenizer(msg_str))
+            total += token
+            
+        return total
 
-    def prune(self, messages, keep_last=15):
-        system_msg = []
-        othermsg = []
-        
-        for msg in messages:
-            if msg["role"] == "system":
-                system_msg.append(msg)
-            else:
-                othermsg.append(msg)
-        
-        if self.token_usage >= self.threshold_tokens and self.token_usage < self.critical_tokens:
-            recent = othermsg[-keep_last:]
-            
-        elif self.token_usage >= self.critical_tokens:
-            keep_last = 5  # Keep fewer messages when critical
-            recent = othermsg[-keep_last:]
-            
-        else:
-            return messages
-        
-        pruned = system_msg + recent
+    def prune(self, messages, keep_last=15, keep_critical=5):
        
+        system_msgs = [m for m in messages if m.get("role") == "system"]
+        
+        other_msgs = [m for m in messages if m.get("role") != "system"]
+
+        
+        token_count = self.count_token(other_msgs)
+
+       
+        if token_count < self.threshold_tokens:
+            return messages
+
+        if token_count >= self.critical_tokens:
+            keep = keep_critical
+        else:
+            keep = keep_last
+            
+        recent = other_msgs[-keep:] if other_msgs else []
+        pruned = system_msgs + recent
         return pruned
+    
+    def auto_prune(self,):
+        pruned = self.prune(self.messages)
+        if len(pruned) < len(self.messages):
+            self.messages = pruned
+            
+            
+    
     def adding_system_prompt(self,prompt):
         self.messages.append({"role": "system", "content": prompt})
 
@@ -79,7 +87,6 @@ class ContextManager:
     def add_tool_call(self, tool_call_id: str, tool_name: str, arguments: dict):
         self.messages.append({
                 "role": "assistant",
-                    "content": None,
                     "tool_calls": [{
                         "id": tool_call_id,
                         "type": "function",
