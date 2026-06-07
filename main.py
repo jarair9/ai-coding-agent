@@ -1,18 +1,17 @@
 from client.llm import llmClient
 import asyncio
 from config.config import get_model
-from context.context_manager import ContextManager
+from client.llm import manager
 from client.llm import handler
 from tui.Tui import TUI
-from colorama import Fore
-from rich.text import Text
+from rich.text import Text  # FIX: removed unused colorama import
 import os
 
 os.system('cls' if os.name == 'nt' else 'clear')
 
 
 llm = llmClient()
-manager = ContextManager()
+
 
 tui = TUI()
 
@@ -23,6 +22,7 @@ async def main():
 
     while True:
         user = tui.console.input("\n[purple]>[/purple] ").strip()
+        
         if user.lower() == "exit":
             break
         elif user.startswith("/") and user == "/usage":
@@ -31,8 +31,18 @@ async def main():
            continue
 
         manager.add_user_message(user)
+        tui.start_thinking()
         async for chunk in llm.streaming_response():
+            tui.stop_thinking()
            
+            # if chunk["type"] == "reasoning":
+            #     if not tui._reasoning_active:
+            #         tui.start_reasoning()
+            #     tui.print_reasoning(chunk["content"])
+
+            # if chunk["type"] not in ("reasoning",) and tui._reasoning_active:
+            #     tui.stop_reasoning()
+
             if chunk["type"] == "text":
                 content = chunk["content"]
                 tui.console.print(
@@ -56,8 +66,7 @@ async def main():
                     if isinstance(tool_result, list) and tool_result:
                         tool_result = tool_result[0]
                         
-                    if pending_tool_args.get("path",""):
-                        path = pending_tool_args.get("path","")
+                    path = pending_tool_args.get("path", "")
                     if isinstance(tool_result, dict) and tool_result.get("success"):
                         
                         content = tool_result.get("content") or tool_result.get("result")
@@ -79,10 +88,10 @@ async def main():
                     path = pending_tool_args.get("path", "unknown")
                     content = pending_tool_args.get("content" , "Empty")
                     
-                    tui.write_file(content=content,tool_name=f"write file",file_path=path)
-                    
                     if not content or not path:
                         tui.error(tool_result.get("error", "Write failed"))
+                    else:
+                        tui.write_file(content=content,tool_name="write file",file_path=path)
                    
 
 
@@ -90,8 +99,8 @@ async def main():
                 
                 elif pending_tool_name == "edit_file":
                     if pending_tool_args:
-                        old_content = pending_tool_args.get("new_content","")
-                        new_content = pending_tool_args.get("old_content","")
+                        old_content = pending_tool_args.get("old_content","")
+                        new_content = pending_tool_args.get("new_content","")
                         file_path = pending_tool_args.get("path","")
                         tui.edit_file(old_content=old_content,new_content=new_content,file_path=file_path)
                     else:
@@ -167,7 +176,8 @@ async def main():
                         tui.shell_panel(output, title="shell",colour="green")
                     else:
                         tui.shell_panel(str(tool_result), title="shell",colour="green")
-                        
+            elif chunk["type"] == "complete":
+                break        
             elif chunk["type"] == "status":
                 tui.error(chunk["message"])
                 
@@ -175,6 +185,8 @@ async def main():
             elif chunk["type"] == "error":
                 tui.error(chunk["error"])
 
+        tui.stop_thinking()
+        tui.stop_tool_spinner()
         pending_tool_name = None
         pending_tool_args = None
 

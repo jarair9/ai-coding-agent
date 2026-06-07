@@ -3,12 +3,12 @@ import os
 from dotenv import load_dotenv
 
 from config.config import get_model
-from tools.tool_schema import Tools
+from tools.built_in.tool_schema import Tools
 
 load_dotenv()
 
 
-# testing wiether the llm send the usage or not at the  of response (streaming response).
+# testing wiether the llm send the usage or not (streaming response).
 
 def run(text):
     client = openai.OpenAI(

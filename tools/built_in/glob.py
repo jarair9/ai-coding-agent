@@ -37,7 +37,7 @@ def is_excluded(path: Path) -> bool:
         return True
     return False
 
-async def Glob(pattern: str, path: str):
+async def glob(pattern: str, path: str):
     search_path = resolve_paths(get_cwd(), path)
     if not search_path.is_dir():
         return {"success": False, "error": "Invalid directory"}

@@ -24,7 +24,7 @@ def _find_files(search_files):
                     break
     return files
 
-async def grep(regex, case_insensitive: bool, path: str):
+async def grep(regex, path: str,case_insensitive: bool = False, ):
     # CORRECTED: Call the function, don't use 'path.' prefix
     search_path = resolve_paths(get_cwd(), path)
 
@@ -69,7 +69,7 @@ async def grep(regex, case_insensitive: bool, path: str):
             output_lines.append("")
 
     if not output_lines:
-        return {"error": f"No matches found for pattern '{regex}'"}
+        return {"success": False, "error": f"No matches found for pattern '{regex}'"}
 
     return {
         "success": True,

@@ -1,7 +1,7 @@
 from config.utils import get_cwd, is_binary_file, resolve_paths
 
 
-async def Readfile(path, offset=None, limit=None):
+async def read_file(path, offset=None, limit=None):
     MAX_FILE_SIZE = 1024 * 1024 * 10
     path = resolve_paths(get_cwd(), path)
 

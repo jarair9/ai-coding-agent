@@ -1,19 +1,18 @@
-from tools.write_file import write_file
-from tools.edit_file import edit_file
-from tools.list_dir import list_dir
-from tools.grep import grep
-from tools.glob import Glob
-from tools.read_file import Readfile
-from tools.shell import shell
-
+from tools.built_in.write_file import write_file
+from tools.built_in.edit_file import edit_file
+from tools.built_in.list_dir import list_dir
+from tools.built_in.grep import grep
+from tools.built_in.glob import glob
+from tools.built_in.read_file import read_file
+from tools.built_in.shell import shell
 
 tool_registry = {
-    "read_file": Readfile,
+    "read_file": read_file,
     "write_file": write_file,
     "shell": shell,
     "list_dir": list_dir,
     "grep": grep,
-    "glob": Glob,
+    "glob": glob,
     "edit_file": edit_file
 }
 
@@ -23,15 +22,12 @@ async def execute_tool(name : str , **kwargs):
 
     if not tool:
         return {
-            "error" : f"Invalid tool name : {tool}"
+            "error" : f"Invalid tool name : {name}"
         }
     try: 
-        result = await tool(**kwargs)
-
-        return {
-            "success": True,
-            "result" : result
-        }
+        return await tool(**kwargs)
+    
+    
     except Exception as e:
         return {
             "success": False,

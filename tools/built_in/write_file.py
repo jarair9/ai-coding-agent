@@ -1,10 +1,6 @@
 from pathlib import Path
 import asyncio
-import sys
-# Ensure project root is in sys.path
-sys.path.append(str(Path(__file__).resolve().parent.parent))
-
-from config.utils import ensure_parent_directory, get_cwd, resolve_paths
+from config.utils import ensure_parent_directory, get_cwd, resolve_paths  # FIX: removed sys.path hack (other tools import same way without it)
 
 # If you want to keep your config.setting functions, they should be implemented like this:
 # def resolve_path(p: Path) -> Path:

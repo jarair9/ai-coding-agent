@@ -1,18 +1,18 @@
-import tiktoken
 import os
-from pathlib import Path
 from openai import AsyncOpenAI
 from dotenv import load_dotenv
 
+_client = None  # FIX: cache client to reuse connection (was creating new one every call)
 
-
-    
 def get_client() -> AsyncOpenAI :
-    load_dotenv()
-    return AsyncOpenAI(
-        api_key=os.getenv("API_KEY"),
-        base_url=os.getenv("BASE_URL")
-    )
+    global _client
+    if _client is None:  # FIX: only create once, reuse on subsequent calls
+        load_dotenv()
+        _client = AsyncOpenAI(
+            api_key=os.getenv("API_KEY"),
+            base_url=os.getenv("BASE_URL")
+        )
+    return _client
 
 
 def get_model() -> str:

@@ -4,8 +4,7 @@ from rich.spinner import Spinner
 from rich.panel import Panel
 from rich.console import Console , Group
 from rich.text import Text
-from rich import print
-from rich.live import Live
+from rich.live import Live  # FIX: removed `from rich import print` (shadowed builtin, unused)
 from rich.syntax import Syntax
 from rich.panel import Panel
 from rich.text import Text
@@ -13,6 +12,7 @@ from rich.text import Text
 class TUI:
     def __init__(self):
         self.console = Console()
+        self._reasoning_active = False
 
     def header(self, model):
     
@@ -75,11 +75,14 @@ class TUI:
         lang = self.get_language(file_path=file_path)
 
         group = Group(
-            Text("old:", style="bold red"),
-            
-            Text(f"{old_content}", style="red"),
+            Syntax(
+                old_content,
+                lang,
+                theme="dracula",
+                line_numbers=True
+            ),
             Text(""),
-            Text("new:", style="bold green"),
+            Text("─" * 40, style="bold green"),
             Syntax(
                 new_content,
                 lang,
@@ -100,11 +103,6 @@ class TUI:
             self.console.print(panel)
             return
 
-      
-        # if not isinstance(content, str):
-        #     code = str(content)
-
-      
         syntax = Syntax(
             content,
             lang,   
@@ -142,17 +140,44 @@ class TUI:
         self.console.print(panel)   
 
     
-    def start_tool_spinner(self, tool_name):
+    def _stop_live(self):
+        if hasattr(self, "live") and self.live:
+            self.live.stop()
+            self.live = None
+
+    def start_thinking(self):
+        self._stop_live()
         self.live = Live(
-            Text(f"⠋ {tool_name}", style="yellow"),
-            refresh_per_second=60,
-            transient=True,  # important
+            Spinner("dots", text="thinking...", style="cyan"),
+            refresh_per_second=10,
+            transient=True,
+            console=self.console
+        )
+        self.live.start()
+
+    def stop_thinking(self):
+        self._stop_live()
+
+    # def start_reasoning(self):
+    #     self._reasoning_active = True
+
+    # def print_reasoning(self, content):
+    #     self.console.print(Text(content, style="#888888 italic"), end="")
+
+    # def stop_reasoning(self):
+    #     self._reasoning_active = False
+    #     self.console.print()
+
+    def start_tool_spinner(self, tool_name):
+        self._stop_live()
+        self.live = Live(
+            Spinner("dots", text=tool_name, style="yellow"),
+            refresh_per_second=10,
+            transient=True,
             console=self.console
         )
         self.live.start()
 
     def stop_tool_spinner(self):
-        if hasattr(self, "live") and self.live:
-            self.live.stop()
-            self.live = None
+        self._stop_live()
 
