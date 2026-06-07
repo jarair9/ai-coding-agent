@@ -2,39 +2,20 @@
 from dataclasses import dataclass
 import json
 from pathlib import Path
-from config.setting import get_context_window, get_model,get_tokenizer,estimate_tokens
+from config.utils import get_context_window,get_tokenizer
+from config.config import get_model
+
 
 @dataclass
 class ContextManager:
     messages=[]
-
-    # autuall token 
-    prompt_token : int = 0
-    completion_token: int = 0
-    total_token : int= 0
-    cached_token: int = 0
-
+    
     tokenizer = get_tokenizer(get_model())
     CONTEXT_WINDOW = get_context_window()
-
     threshold_tokens = int((CONTEXT_WINDOW * 80) / 100)   
-    critical_tokens = int((CONTEXT_WINDOW * 95) / 100)    
-
-
-    def usage_tracker(self,prompt_token,completion_token,cached_token):
-        # extracting tokens
-        self.prompt_token += prompt_token
-        self.completion_token += completion_token
-        self.total_token += prompt_token + completion_token
-        self.cached_token += cached_token
-        
-    def usage_stats(self):
-        return {
-            "prompt": self.prompt_token,
-            "completion": self.completion_token,
-            "total": self.prompt_token + self.completion_token,
-            "cached": self.cached_token
-        }
+    critical_tokens = int((CONTEXT_WINDOW * 95) / 100)  
+    
+  
     def count_token(self ,messages) -> None:
         total = 0
         for msg in messages:
@@ -45,18 +26,13 @@ class ContextManager:
         return total
 
     def prune(self, messages, keep_last=15, keep_critical=5):
-       
+        
         system_msgs = [m for m in messages if m.get("role") == "system"]
-        
         other_msgs = [m for m in messages if m.get("role") != "system"]
-
-        
         token_count = self.count_token(other_msgs)
 
-       
         if token_count < self.threshold_tokens:
             return messages
-
         if token_count >= self.critical_tokens:
             keep = keep_critical
         else:
@@ -66,13 +42,13 @@ class ContextManager:
         pruned = system_msgs + recent
         return pruned
     
+    
     def auto_prune(self,):
         pruned = self.prune(self.messages)
         if len(pruned) < len(self.messages):
             self.messages = pruned
             
-            
-    
+
     def adding_system_prompt(self,prompt):
         self.messages.append({"role": "system", "content": prompt})
 

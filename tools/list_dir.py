@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 import asyncio
 # sys.path.append(str(Path(__file__).resolve().parent.parent))
-from config.setting import get_cwd, resolve_paths
+from config.utils import get_cwd, resolve_paths
 
 
 async def list_dir(path, hidden_file: bool = False):

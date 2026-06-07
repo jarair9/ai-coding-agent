@@ -1,7 +1,8 @@
 from client.llm import llmClient
 import asyncio
-from config.setting import get_model
-from context.memory import ContextManager
+from config.config import get_model
+from context.context_manager import ContextManager
+from client.llm import handler
 from tui.Tui import TUI
 from colorama import Fore
 from rich.text import Text
@@ -12,6 +13,7 @@ os.system('cls' if os.name == 'nt' else 'clear')
 
 llm = llmClient()
 manager = ContextManager()
+
 tui = TUI()
 
 async def main():
@@ -24,7 +26,9 @@ async def main():
         if user.lower() == "exit":
             break
         elif user.startswith("/") and user == "/usage":
-           pass
+           usage = handler.return_usage()
+           print(usage)
+           continue
 
         manager.add_user_message(user)
         async for chunk in llm.streaming_response():
@@ -39,7 +43,6 @@ async def main():
             elif chunk["type"] == "tool_call":
                 pending_tool_name = chunk["tool_call"]["tool_name"]
                 pending_tool_args = chunk["tool_call"]["tool_args"]
-                # tool_spinner = None
                 tui.start_tool_spinner(pending_tool_name)
                 
                 

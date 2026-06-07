@@ -1,26 +1,24 @@
 from pathlib import Path
 import asyncio
 import sys
-sys.path.append(str(Path(__file__).resolve().parent.parent))
-from config.setting import get_cwd, resolve_paths
+from config.utils import get_cwd, resolve_paths
+
+
 
 async def edit_file(path: str, old_content: str, new_content: str, replace_all: bool = False):
+    
+    
     file_path = resolve_paths(get_cwd(), path)
 
     if file_path.is_dir():
-        
         return {"success": False, "error": "Path is a directory, not a file"}
     
     if not file_path.exists():
-        
         return {"success": False, "error": "File does not exist"}
 
     try:
-        
         original = file_path.read_text(encoding="utf-8")
-        
     except UnicodeDecodeError:
-        
         original = file_path.read_text(encoding="latin-1")
 
     if not original:

@@ -1,13 +1,22 @@
 import json
-from config.setting import get_client, get_model
-from openai import AuthenticationError, RateLimitError, APIError, APIConnectionError, APITimeoutError, OpenAIError
+from config.config import get_client, get_model
+from openai import (
+    AuthenticationError,
+    RateLimitError,
+    APIError,
+    APIConnectionError, 
+    APITimeoutError, 
+    OpenAIError
+)
 import asyncio
 from tools.base import execute_tool
 from tools.tool_schema import Tools
-from context.memory import ContextManager
+from context.context_manager import ContextManager
+from context.usage_handler import usage_tracker
 from system.prompt import prompt
 
 manager = ContextManager()
+handler = usage_tracker()
 
 class llmClient:
     def __init__(self):
@@ -34,16 +43,13 @@ class llmClient:
                         delta = chunk.choices[0].delta
                         finish_reason = chunk.choices[0].finish_reason
 
-                        # 1. Stream text content
                         if delta.content is not None:
                             yield {"type": "text", "content": delta.content}
 
-                        # 2. Final answer 
-                        if finish_reason == "stop":
-                            yield {"type": "complete", "finish_reason": "stop"}
-                            return
+                        
+                        
 
-                        # 3. Accumulate tool call pieces (streaming)
+                      
                         if hasattr(delta, "tool_calls") and delta.tool_calls is not None:
                             for tc in delta.tool_calls:
                                 idx = tc.index
@@ -62,12 +68,12 @@ class llmClient:
                                     if tc.function.arguments:
                                         accumulated_tool_calls[idx]["arguments"] += tc.function.arguments
 
-                        # 4. When the LLM ends a turn with tool calls
+                        
                         if finish_reason == "tool_calls" and accumulated_tool_calls:
                             for tool_data in list(accumulated_tool_calls.values()):
                                 if not tool_data["name"]:
                                     continue
-                                # Parse arguments
+                                
                                 try:
                                     tool_args = json.loads(tool_data["arguments"]) if tool_data["arguments"] else {}
                                 except json.JSONDecodeError:
@@ -85,32 +91,33 @@ class llmClient:
                                     }
                                 }
 
-                                # Store tool call in context
                                 manager.add_tool_call(tool_call_id, tool_name, tool_args)
-
-                                # Execute the tool
                                 result = await execute_tool(name=tool_name, **tool_args)
-
-                                # Store tool result (must use "content" key internally)
                                 manager.add_tool_result(tool_call_id, tool_name, result)
-
-                                # Yield result to UI
                                 yield {"type": "tool_result", "tool_result": result}
 
-                            
                             accumulated_tool_calls.clear()
+                        if finish_reason == "stop":
+                            yield {"type": "complete", "finish_reason": "stop"}
                             
-                            break   
-
-                        # 5. Handle usage statistics (if present)
-                        if hasattr(chunk, "usage") and chunk.usage:
-                            prompt_tokens = chunk.usage.prompt_tokens
-                            completion_tokens = chunk.usage.completion_tokens
-                            cached_tokens = 0
-                            if hasattr(chunk.usage, "prompt_tokens_details") and chunk.usage.prompt_tokens_details:
-                                cached_tokens = getattr(chunk.usage.prompt_tokens_details, "cached_tokens", 0)
-                            manager.usage_tracker(prompt_tokens, completion_tokens, cached_tokens)
-
+                            if hasattr(chunk, "usage") and chunk.usage:
+                                prompt_tokens = chunk.usage.prompt_tokens
+                                completion_tokens = chunk.usage.completion_tokens
+                                total_tokens = chunk.usage.total_tokens
+                                reasoning_tokens = chunk.usage.completion_tokens_details.reasoning_tokens
+                                
+                                
+                                
+                                if hasattr(chunk.usage, "prompt_tokens_details") and chunk.usage.prompt_tokens_details is not None:
+                                    
+                                    
+                                    cached_tokens = getattr(
+                                        chunk.usage.prompt_tokens_details, "cached_tokens", 0
+                                        )
+                                    
+                                handler.usage_stats(prompt_tokens, completion_tokens,total_tokens,reasoning_tokens, cached_tokens)
+                                return
+                            break
                     break
 
                 except RateLimitError as e:
@@ -144,8 +151,21 @@ class llmClient:
                 except OpenAIError:
                     yield {"type" : "error","error": "Missing Credentails add API_KEY and BASE_URL in env file and try Again..."}
                     return
-        # Max rounds reached without final answer
+        
+        
         yield {"type": "error", "error": f"Max rounds ({MAX_ROUNDS}) reached"}
+
+
+
+
+
+
+
+
+
+
+
+
 
     async def non_streaming(self, system_prompt: str, user, max_retries=3):
         for attempts in range(max_retries + 1):

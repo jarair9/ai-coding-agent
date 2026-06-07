@@ -2,7 +2,8 @@ import openai
 import os 
 from dotenv import load_dotenv
 
-from config.setting import get_model
+from config.config import get_model
+from tools.tool_schema import Tools
 
 load_dotenv()
 
@@ -22,8 +23,10 @@ def run(text):
     )
     for chunks in response:
         yield chunks
-        
-res = run(text="hi how are you what can you do")
+
+
+user = input("-> ")
+res = run(text=user)
 
 for char in res:
     print(char)

@@ -8,7 +8,7 @@ import sys
 # sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 # Import the functions correctly
-from config.setting import is_binary_file, resolve_paths, get_cwd
+from config.utils import is_binary_file, resolve_paths, get_cwd
 
 def _find_files(search_files):
     files = []

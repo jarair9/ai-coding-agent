@@ -1,7 +1,7 @@
 from pathlib import Path
-from config.setting import get_cwd, resolve_paths
+from config.utils import get_cwd, resolve_paths
 
-# Directories to completely ignore (never traverse into)
+
 EXCLUDED_DIRS = {
     ".venv", "venv", "env", "virtualenv",
     "__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache",
@@ -14,7 +14,7 @@ EXCLUDED_DIRS = {
     "logs", "tmp", "temp",
 }
 
-# File extensions to ignore (optional, e.g., binary files, logs)
+
 EXCLUDED_EXTENSIONS = {
     ".pyc", ".pyo", ".pyd",
     ".so", ".dll", ".dylib",
@@ -25,15 +25,14 @@ EXCLUDED_EXTENSIONS = {
 }
 
 def is_excluded(path: Path) -> bool:
-    """Check if a path or any of its parents is in the excluded list."""
-    # Check directory names (excluding root)
+    
     for part in path.parents:
         if part.name in EXCLUDED_DIRS:
             return True
-    # Check the file/directory itself
+    
     if path.name in EXCLUDED_DIRS:
         return True
-    # Check extension for files
+    
     if path.is_file() and path.suffix in EXCLUDED_EXTENSIONS:
         return True
     return False
@@ -43,21 +42,20 @@ async def Glob(pattern: str, path: str):
     if not search_path.is_dir():
         return {"success": False, "error": "Invalid directory"}
 
-    # Helper to filter matches and avoid walking into excluded dirs
+    
     def collect_matches(start_path: Path, glob_pattern: str):
-        """Recursively collect files matching glob_pattern, skipping excluded directories."""
-        # Using pathlib's glob does not automatically skip subdirectories – we need to filter.
-        # We'll use rglob but filter out excluded subdirs manually.
+       
+      
         matches = []
         for p in start_path.rglob(glob_pattern):
-            # Check if any parent directory is excluded
+           
             if is_excluded(p):
                 continue
             if p.is_file():
                 matches.append(p)
         return matches
 
-    # Handle brace expansion (as before)
+    
     if '{' in pattern and '}' in pattern:
         start = pattern.find('{')
         end = pattern.find('}')

@@ -4,7 +4,7 @@ import sys
 # Ensure project root is in sys.path
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
-from config.setting import ensure_parent_directory, get_cwd, resolve_paths
+from config.utils import ensure_parent_directory, get_cwd, resolve_paths
 
 # If you want to keep your config.setting functions, they should be implemented like this:
 # def resolve_path(p: Path) -> Path:

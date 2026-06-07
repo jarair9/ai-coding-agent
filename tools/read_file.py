@@ -1,4 +1,4 @@
-from config.setting import get_cwd, is_binary_file, resolve_paths
+from config.utils import get_cwd, is_binary_file, resolve_paths
 
 
 async def Readfile(path, offset=None, limit=None):
