@@ -46,29 +46,10 @@ class ContextManager:
     def auto_prune(self,):
         pruned = self.prune(self.messages)
         if len(pruned) < len(self.messages):
+            print("Pruning messages")
             self.messages = pruned
             
-    def sanitize_messages(self):
-        tool_call_ids = set()
-        for msg in self.messages:
-            if msg.get("role") == "assistant" and "tool_calls" in msg:
-                for tc in msg["tool_calls"]:
-                    tool_call_ids.add(tc.get("id"))
-        tool_result_ids = set()
-        for msg in self.messages:
-            if msg.get("role") == "tool":
-                tool_result_ids.add(msg.get("tool_call_id"))
-        orphaned_ids = tool_call_ids - tool_result_ids
-        if not orphaned_ids:
-            return
-        self.messages = [
-            msg for msg in self.messages
-            if not (
-                msg.get("role") == "assistant"
-                and "tool_calls" in msg
-                and any(tc.get("id") in orphaned_ids for tc in msg["tool_calls"])
-            )
-        ]
+
 
     def adding_system_prompt(self,prompt):
         self.messages.append({"role": "system", "content": prompt})

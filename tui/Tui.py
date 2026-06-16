@@ -15,11 +15,11 @@ class TUI:
         self._reasoning_active = False
 
     def header(self, model):
-    
         panel =Panel(f"Model : {model}\nCommands : /help , /model, /usage\nMode : Auto approve Actions",title="[purple]AI Agent[/purple]",title_align="left",highlight=True,style="cyan")
         self.console.print(panel)
 
 
+    
     def error(self,error):
         panel = Panel(error,title_align="center",expand= True,style="bold red")
         self.console.print(panel)
@@ -33,12 +33,8 @@ class TUI:
             panel = Panel(fallback, title=f"{tool_name} : {file_path}", title_align="center", expand=True, style="dim")
             self.console.print(panel)
             return
-
-      
         if not isinstance(code, str):
             code = str(code)
-
-      
         syntax = Syntax(
             code,
             lang,   
@@ -82,7 +78,7 @@ class TUI:
                 line_numbers=True
             ),
             Text(""),
-            Text("─" * 40, style="bold green"),
+            Text("─" * 60, style="bold green"),
             Syntax(
                 new_content,
                 lang,
@@ -130,13 +126,13 @@ class TUI:
         if not content_str.strip():
             content_str = "[Empty directory or no files]"
         
-        panel = Panel(content_str, title=title, expand=True, highlight=True,style="green")
+        panel = Panel(content_str, title=title, expand=True, highlight=True)
         self.console.print(panel)
         
     def shell_panel(self, content: str,colour : str ,title: str = "shell", ):
         if not content or content.strip() == "":
             content = "[No output]"
-        panel = Panel(content, title=f"[{colour}]{title}[/{colour}]", border_style="red", expand=True)
+        panel = Panel(content, title=f"[{colour}]{title}[/{colour}]", expand=True)
         self.console.print(panel)   
 
     
@@ -158,15 +154,15 @@ class TUI:
     def stop_thinking(self):
         self._stop_live()
 
-    # def start_reasoning(self):
-    #     self._reasoning_active = True
+    def start_reasoning(self):
+        self._reasoning_active = True
 
-    # def print_reasoning(self, content):
-    #     self.console.print(Text(content, style="#888888 italic"), end="")
+    def print_reasoning(self, content):
+        self.console.print(Text(content, style="#888888 italic"), end="")
 
-    # def stop_reasoning(self):
-    #     self._reasoning_active = False
-    #     self.console.print()
+    def stop_reasoning(self):
+        self._reasoning_active = False
+        self.console.print()
 
     def start_tool_spinner(self, tool_name):
         self._stop_live()

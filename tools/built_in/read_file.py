@@ -16,7 +16,7 @@ async def read_file(path, offset=None, limit=None):
 
     if is_binary_file(path):
         size_str = f"{file_size/(1024*1024):.2f}MB" if file_size >= 1024*1024 else f"{file_size} bytes"
-        return {"success": False, "error": f"Cannot read binary file: {path.name} ({size_str}). Only text files."}
+        return {"success": True, "error": f"Cannot read binary file: {path.name} ({size_str}). Only text files."}
 
     try:
         try:

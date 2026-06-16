@@ -25,7 +25,7 @@ class llmClient:
         self.client = get_client()
         self.model = get_model()
 
-    async def streaming_response(self, max_retries=3, MAX_ROUNDS=10):
+    async def streaming_response(self, max_retries=3, MAX_ROUNDS=100):
         
         
         for _ in range(MAX_ROUNDS):
@@ -33,25 +33,24 @@ class llmClient:
             for attempts in range(max_retries + 1):
                 msg_count = len(manager.messages)  # snapshot msg count for retry rollback
                 try:
-                    manager.sanitize_messages()  # remove orphaned tool_calls before API call
+                   
                     response = await self.client.chat.completions.create(
                         model=self.model,
                         messages=manager.messages,
                         tools=Tools,
-                        stream=True
-                        
+                        stream=True   
                     )
 
-                    
                     accumulated_tool_calls = {}
 
                     async for chunk in response:
                         if not chunk.choices:  
                             continue
+                        
                         delta = chunk.choices[0].delta
                         finish_reason = chunk.choices[0].finish_reason
 
-                        reasoning = getattr(delta, "reasoning_content", None)
+                        reasoning = getattr(delta, "reasoning", None)
                         if reasoning is not None:
                             yield {"type": "reasoning", "content": reasoning}
 

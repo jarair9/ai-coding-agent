@@ -52,7 +52,7 @@ def count_token(text):
 
 
 def get_context_window():
-        return  256000 
+        return  2560000 
     
 
 

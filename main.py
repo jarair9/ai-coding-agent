@@ -4,7 +4,7 @@ from config.config import get_model
 from client.llm import manager
 from client.llm import handler
 from tui.Tui import TUI
-from rich.text import Text  # FIX: removed unused colorama import
+from rich.text import Text  
 import os
 
 os.system('cls' if os.name == 'nt' else 'clear')
@@ -35,18 +35,18 @@ async def main():
         async for chunk in llm.streaming_response():
             tui.stop_thinking()
            
-            # if chunk["type"] == "reasoning":
-            #     if not tui._reasoning_active:
-            #         tui.start_reasoning()
-            #     tui.print_reasoning(chunk["content"])
+            if chunk["type"] == "reasoning":
+                if not tui._reasoning_active:
+                    tui.start_reasoning()
+                tui.print_reasoning(chunk["content"])
 
-            # if chunk["type"] not in ("reasoning",) and tui._reasoning_active:
-            #     tui.stop_reasoning()
+            if chunk["type"] not in ("reasoning",) and tui._reasoning_active:
+                tui.stop_reasoning()
 
             if chunk["type"] == "text":
                 content = chunk["content"]
                 tui.console.print(
-                    Text(content, style="green"),
+                    Text(content, style="cyan"),
                     end=""
                 )
 
@@ -63,10 +63,11 @@ async def main():
 
                 
                 if pending_tool_name == "read_file":
+                    path = pending_tool_args["path"]
                     if isinstance(tool_result, list) and tool_result:
                         tool_result = tool_result[0]
                         
-                    path = pending_tool_args.get("path", "")
+                    
                     if isinstance(tool_result, dict) and tool_result.get("success"):
                         
                         content = tool_result.get("content") or tool_result.get("result")
