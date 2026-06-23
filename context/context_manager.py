@@ -24,7 +24,7 @@ class ContextManager:
             total += token
             
         return total
-
+    
     def prune(self, messages, keep_last=15, keep_critical=5):
         
         system_msgs = [m for m in messages if m.get("role") == "system"]

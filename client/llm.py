@@ -24,14 +24,15 @@ class llmClient:
     def __init__(self):
         self.client = get_client()
         self.model = get_model()
-
+        self.msg = ""
+        
     async def streaming_response(self, max_retries=3, MAX_ROUNDS=100):
         
         
         for _ in range(MAX_ROUNDS):
             
             for attempts in range(max_retries + 1):
-                msg_count = len(manager.messages)  # snapshot msg count for retry rollback
+                msg_count = len(manager.messages)  
                 try:
                    
                     response = await self.client.chat.completions.create(
@@ -55,8 +56,11 @@ class llmClient:
                             yield {"type": "reasoning", "content": reasoning}
 
                         if delta.content is not None:
-                            yield {"type": "text", "content": delta.content}
-
+                            content = delta.content
+                            yield {"type": "text", "content": content}
+                            self.msg += content
+                            
+                     
                         if hasattr(delta, "tool_calls") and delta.tool_calls is not None:
                             for tc in delta.tool_calls:
                                 idx = tc.index
@@ -110,6 +114,7 @@ class llmClient:
                             break
 
                         if finish_reason == "stop":
+                            manager.add_assistant_text(self.msg)
                             if hasattr(chunk, "usage") and chunk.usage:
                                 prompt_tokens = chunk.usage.prompt_tokens
                                 completion_tokens = chunk.usage.completion_tokens
@@ -130,7 +135,7 @@ class llmClient:
 
                 except RateLimitError as e:
                     if attempts < max_retries:
-                        manager.messages = manager.messages[:msg_count]  # FIX: revert msgs added in failed round
+                        manager.messages = manager.messages[:msg_count]  # revert msgs added in failed round
                         await asyncio.sleep(2 ** attempts)
                         yield {"type": "status", "message": f"Rate limit, retrying in {2**attempts}s"}
                     else:
@@ -138,7 +143,7 @@ class llmClient:
                         return
                 except APIConnectionError as e:
                     if attempts < max_retries:
-                        manager.messages = manager.messages[:msg_count]  # FIX: revert msgs added in failed round
+                        manager.messages = manager.messages[:msg_count]  #  revert msgs added in failed round
                         await asyncio.sleep(2 ** attempts)
                         yield {"type": "status", "message": f"Connection error, retrying in {2**attempts}s"}
                     else:
@@ -146,7 +151,7 @@ class llmClient:
                         return
                 except APITimeoutError as e:
                     if attempts < max_retries:
-                        manager.messages = manager.messages[:msg_count]  # FIX: revert msgs added in failed round
+                        manager.messages = manager.messages[:msg_count] 
                         await asyncio.sleep(2 ** attempts)
                         yield {"type": "status", "message": f"Timeout, retrying in {2**attempts}s"}
                     else:
@@ -169,45 +174,34 @@ class llmClient:
         yield {"type": "error", "error": f"Max rounds ({MAX_ROUNDS}) reached"}
 
 
-
-
-
-
-
-
-
-
-
-
-
-    async def non_streaming(self, system_prompt: str, user, max_retries=3):
-        for attempts in range(max_retries + 1):
-            try:
-                response = await self.client.chat.completions.create(
-                    model=self.model,
-                    messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": user}],
-                    stream=False
-                )
-                return response.choices[0].message.content
-            except APIConnectionError as e:
-                if attempts < max_retries:
-                    await asyncio.sleep(2 ** attempts)
-                else:
-                    return f"Connection Error: {e}"
-            except RateLimitError:
-                if attempts < max_retries:
-                    await asyncio.sleep(2 ** attempts)
-                else:
-                    return "Rate Limited. Please try again."
-            except APITimeoutError as e:
-                if attempts < max_retries:
-                    await asyncio.sleep(2 ** attempts)
-                else:
-                    return f"API timeout: {e}"
-            except AuthenticationError as e:
-                if attempts < max_retries:
-                    await asyncio.sleep(2 ** attempts)
-                else:
-                    return f"Authentication Error: {e}"
-            except APIError as e:
-                return f"API Error: {e}"
+    # async def non_streaming(self, system_prompt: str, user, max_retries=3):
+    #     for attempts in range(max_retries + 1):
+    #         try:
+    #             response = await self.client.chat.completions.create(
+    #                 model=self.model,
+    #                 messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": user}],
+    #                 stream=False
+    #             )
+    #             return response.choices[0].message.content
+    #         except APIConnectionError as e:
+    #             if attempts < max_retries:
+    #                 await asyncio.sleep(2 ** attempts)
+    #             else:
+    #                 return f"Connection Error: {e}"
+    #         except RateLimitError:
+    #             if attempts < max_retries:
+    #                 await asyncio.sleep(2 ** attempts)
+    #             else:
+    #                 return "Rate Limited. Please try again."
+    #         except APITimeoutError as e:
+    #             if attempts < max_retries:
+    #                 await asyncio.sleep(2 ** attempts)
+    #             else:
+    #                 return f"API timeout: {e}"
+    #         except AuthenticationError as e:
+    #             if attempts < max_retries:
+    #                 await asyncio.sleep(2 ** attempts)
+    #             else:
+    #                 return f"Authentication Error: {e}"
+    #         except APIError as e:
+    #             return f"API Error: {e}"

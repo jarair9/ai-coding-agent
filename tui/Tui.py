@@ -77,8 +77,8 @@ class TUI:
                 theme="dracula",
                 line_numbers=True
             ),
-            Text(""),
-            Text("─" * 60, style="bold green"),
+            # Text(""),
+            # Text("─" * 200, style="bold green"),
             Syntax(
                 new_content,
                 lang,

@@ -1,10 +1,12 @@
+from __future__ import annotations
 from client.llm import llmClient
-import asyncio
 from config.config import get_model
 from client.llm import manager
 from client.llm import handler
+
 from tui.Tui import TUI
 from rich.text import Text  
+import asyncio
 import os
 
 os.system('cls' if os.name == 'nt' else 'clear')
@@ -26,10 +28,19 @@ async def main():
         if user.lower() == "exit":
             break
         elif user.startswith("/") and user == "/usage":
-           usage = handler.return_usage()
-           print(usage)
-           continue
-
+             
+            usage = handler.return_usage()
+            print(usage)
+            continue
+         
+        
+        elif user.startswith("/") and user == "/messages":
+            messages = manager.messages
+            other_msgs = [m for m in messages if m.get("role") != "system"]
+            
+            print(other_msgs)
+            continue
+        
         manager.add_user_message(user)
         tui.start_thinking()
         async for chunk in llm.streaming_response():
@@ -49,6 +60,7 @@ async def main():
                     Text(content, style="cyan"),
                     end=""
                 )
+            
 
             elif chunk["type"] == "tool_call":
                 pending_tool_name = chunk["tool_call"]["tool_name"]

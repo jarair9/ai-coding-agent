@@ -137,7 +137,7 @@ Tools = [
                     },
                     "timeout": {
                         "type": "integer",
-                        "description": "Timeout in seconds (default: 120)"
+                        "description": "Timeout in seconds (default: 60s)"
                     }
                 },
                 "required": ["command"]

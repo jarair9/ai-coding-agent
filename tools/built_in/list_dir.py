@@ -15,7 +15,7 @@ async def list_dir(path, hidden_file: bool = False):
         return {"success": False, "error": "Path is a file, not a directory"}
 
     output_lines = []
-    items = sorted(path.iterdir())  # FIX: sort for deterministic output (was filesystem-order)
+    items = sorted(path.iterdir())  # sort for deterministic output (was filesystem-order)
 
     for item in items:
         # Skip hidden files/directories if not requested

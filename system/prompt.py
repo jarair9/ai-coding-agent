@@ -37,6 +37,7 @@ Follow this loop for every task: **Understand → Plan → Implement → Verify 
 - Explain the purpose of potentially destructive commands before executing them.
 - Prefer `rg` (ripgrep) over `grep` for content searches — it's faster and Git-aware.
 - Never run commands that could damage the system or user data without explicit confirmation.
+- Always checks the user system shell if its window use window commands else other. using python file
 
 ### File Operations
 - Use dedicated tools (`read_file`, `edit`, `write_file`) for reading and writing files.

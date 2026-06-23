@@ -25,7 +25,7 @@ def _find_files(search_files):
     return files
 
 async def grep(regex, path: str,case_insensitive: bool = False, ):
-    # CORRECTED: Call the function, don't use 'path.' prefix
+    #  Call the function, don't use 'path.' prefix
     search_path = resolve_paths(get_cwd(), path)
 
     if not search_path.exists():
@@ -52,7 +52,7 @@ async def grep(regex, path: str,case_insensitive: bool = False, ):
         file_matches = False
 
         for i, line in enumerate(lines, start=1):
-            # CORRECTED: Search 'line', not the pattern object
+
             if pattern.search(line): 
                 matches += 1
                 if not file_matches:
