@@ -1,13 +1,30 @@
+import time
+from pathlib import Path
+from rich.console import Console, Group
+from rich.live import Live
+from rich.panel import Panel
+from rich.spinner import Spinner
+from rich.syntax import Syntax
+from rich.text import Text
+from rich.markdown import Markdown
 
+class TUI:
+
+    def __init__(self):
+        self.console = Console()
+        self._reasoning_active = False
 from pathlib import Path
 from rich.spinner import Spinner
 from rich.panel import Panel
 from rich.console import Console , Group
 from rich.text import Text
-from rich.live import Live  # FIX: removed `from rich import print` (shadowed builtin, unused)
+from rich.live import Live  
 from rich.syntax import Syntax
 from rich.panel import Panel
 from rich.text import Text
+from textual.app import App, ComposeResult
+from textual.widgets import Collapsible, Label
+
 
 class TUI:
     def __init__(self):
@@ -15,15 +32,43 @@ class TUI:
         self._reasoning_active = False
 
     def header(self, model):
-        panel =Panel(f"Model : {model}\nCommands : /help , /model, /usage\nMode : Auto approve Actions",title="[purple]AI Agent[/purple]",title_align="left",highlight=True,style="cyan")
+        panel = Panel(
+            f"Model : {model}\nCommands : /help , /model, /usage\nMode : Auto approve Actions",
+            title="[purple]AI Agent[/purple]",
+            title_align="left",
+            highlight=True,
+            style="cyan",
+        )
         self.console.print(panel)
 
-
+    def printmd(self, text):
+        md = Markdown(text)
+        # Apply the style directly to the Markdown object or the console print
+        self.console.print(md, style="cyan", end="")
+        
+    def get_language(self, file_path: str) -> str:
+        ext = Path(file_path).suffix.lower()
+        lang_map = {
+                ".py": "python",
+                ".js": "javascript",
+                ".ts": "typescript",
+                ".html": "html",
+                ".css": "css",
+                ".json": "json",
+                ".md": "markdown",
+                ".yml": "yaml",
+                ".yaml": "yaml",
+                ".sh": "bash",
+                ".txt": "text",
+            }
+        return lang_map.get(ext, "text")
     
-    def error(self,error):
-        panel = Panel(error,title_align="center",expand= True,style="bold red")
+    def error(self, error):
+        panel = Panel(
+            error, title_align="center", expand=True, style="bold red"
+        )
         self.console.print(panel)
-
+    
 
     def read_file_ui(self, code, tool_name,file_path):
         lang = self.get_language(file_path=file_path)
@@ -34,38 +79,18 @@ class TUI:
             self.console.print(panel)
             return
         if not isinstance(code, str):
-            code = str(code)
+            code = str(code[:1000])
+        
         syntax = Syntax(
-            code,
+            code[:1000],
             lang,   
             theme="monokai",
-            
+        
            
         )
         panel = Panel(syntax, title=tool_name, title_align="center", expand=True,highlight=True)
         self.console.print(panel)
 
-    
-        
-        
-    def get_language(self, file_path: str) -> str:
-        ext = Path(file_path).suffix.lower()
-        lang_map = {
-            ".py": "python",
-            ".js": "javascript",
-            ".ts": "typescript",
-            ".html": "html",
-            ".css": "css",
-            ".json": "json",
-            ".md": "markdown",
-            ".yml": "yaml",
-            ".yaml": "yaml",
-            ".sh": "bash",
-            ".txt": "text",
-        }
-        return lang_map.get(ext, "text")
-    
-    
     
     def edit_file(self,old_content,new_content,file_path):
         lang = self.get_language(file_path=file_path)
@@ -78,7 +103,7 @@ class TUI:
                 line_numbers=True
             ),
             # Text(""),
-            # Text("─" * 200, style="bold green"),
+            Text("─" * 1000, style="bold green"),
             Syntax(
                 new_content,
                 lang,
@@ -100,18 +125,18 @@ class TUI:
             return
 
         syntax = Syntax(
-            content,
+            content[:1000],
             lang,   
             theme="monokai",
             line_numbers=True
             
            
         )
-        panel = Panel(syntax, title=tool_name, title_align="center", expand=True,highlight=True)
-        self.console.print(panel)
+        # panel = Panel(syntax, title=tool_name, title_align="center", expand=True,highlight=True)
+        self.console.print(syntax)
 
             
-    def white_panel(self, content, title):
+    def list_files(self, content, title):
 
         if content is None:
             content_str = "[No content]"
@@ -135,45 +160,11 @@ class TUI:
         panel = Panel(content, title=f"[{colour}]{title}[/{colour}]", expand=True)
         self.console.print(panel)   
 
-    
-    def _stop_live(self):
-        if hasattr(self, "live") and self.live:
-            self.live.stop()
-            self.live = None
-
-    def start_thinking(self):
-        self._stop_live()
-        self.live = Live(
-            Spinner("dots", text="thinking...", style="cyan"),
-            refresh_per_second=10,
-            transient=True,
-            console=self.console
-        )
-        self.live.start()
-
-    def stop_thinking(self):
-        self._stop_live()
-
-    def start_reasoning(self):
-        self._reasoning_active = True
-
+   
     def print_reasoning(self, content):
         self.console.print(Text(content, style="#888888 italic"), end="")
 
-    def stop_reasoning(self):
-        self._reasoning_active = False
-        self.console.print()
 
-    def start_tool_spinner(self, tool_name):
-        self._stop_live()
-        self.live = Live(
-            Spinner("dots", text=tool_name, style="yellow"),
-            refresh_per_second=10,
-            transient=True,
-            console=self.console
-        )
-        self.live.start()
+    
 
-    def stop_tool_spinner(self):
-        self._stop_live()
-
+    

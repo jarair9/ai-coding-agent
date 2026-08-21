@@ -165,5 +165,45 @@ Tools = [
                 "required": ["path"]
             }
         }
-    }
+    },{
+            "type": "function",
+            "function": {
+                "name": "webfetch",
+                "description": "Fetch content from a URL. Returns the response body as text",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "url": {
+                            "type": "string",
+                            "description": "URL to fetch (must be http:// or https://)"
+                        },
+                        "timeout": {
+                            "type": "int",
+                            "description": "Request timeout in seconds (default: 120)"
+                        }
+                    },
+                    "required": ["url"]
+                }
+            }
+        },{
+            "type": "function",
+            "function": {
+                "name": "websearch",
+                "description": "Search the web for information. Returns search results with titles, URLs and snippets",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "query": {
+                            "type": "string",
+                            "description": "Search query"
+                        },
+                        "result_count": {
+                            "type": "int",
+                            "description": "Number of pages to result on. defult to 10"
+                        }
+                    },
+                    "required": ["query"]
+                }
+            }
+        }
 ]

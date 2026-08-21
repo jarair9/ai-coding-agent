@@ -61,7 +61,7 @@ def _expand_braces(pattern: str) -> list[str]:
     return patterns
 
 
-async def glob(pattern: str, path: str) -> dict:
+async def glob_tool(pattern: str, path: str) -> dict:
     search_path = resolve_paths(get_cwd(), path)
     if not search_path.is_dir():
         return {"success": False, "error": "Invalid directory"}

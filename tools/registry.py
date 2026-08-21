@@ -1,10 +1,12 @@
-from tools.built_in.write_file import write_file
-from tools.built_in.edit_file import edit_file
-from tools.built_in.list_dir import list_dir
-from tools.built_in.grep import grep
-from tools.built_in.glob import glob
-from tools.built_in.read_file import read_file
-from tools.built_in.shell import shell
+from tools.write_file import write_file
+from tools.edit_file import edit_file
+from tools.list_dir import list_dir
+from tools.grep import grep
+from tools.glob_tool import glob_tool
+from tools.read_file import read_file
+from tools.shell import shell
+from tools.webfetch import webfetch
+from tools.websearch import websearch
 
 tool_registry = {
     "read_file": read_file,
@@ -12,8 +14,10 @@ tool_registry = {
     "shell": shell,
     "list_dir": list_dir,
     "grep": grep,
-    "glob": glob,
-    "edit_file": edit_file
+    "glob": glob_tool,
+    "edit_file": edit_file,
+    "webfetch": webfetch,
+    "websearch": websearch
 }
 
 

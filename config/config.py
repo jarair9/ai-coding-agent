@@ -2,7 +2,7 @@ import os
 from openai import AsyncOpenAI
 from dotenv import load_dotenv
 
-_client = None  # cache client to reuse connection (was creating new one every call)
+_client = None  # cache client to reuse connection 
 
 def get_client() -> AsyncOpenAI :
     global _client
@@ -16,7 +16,12 @@ def get_client() -> AsyncOpenAI :
 
 
 def get_model() -> str:
-    return   "zai-glm-4.7"  # "gpt-oss-120b" 
+    return   "openai/gpt-oss-120b"  # "gpt-oss-120b" 
 
 
-
+def get_available_model():
+    return {
+        "Google model":"gemma-4-31b",
+        "OpenAI Model": "gpt-oss-120b",
+        "Z.AI Model": "z.ai-glm-4.7"
+    }

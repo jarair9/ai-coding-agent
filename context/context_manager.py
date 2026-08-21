@@ -2,7 +2,7 @@
 from dataclasses import dataclass, field
 import json
 from pathlib import Path
-from config.utils import get_context_window,get_tokenizer
+from config.utils import get_context_window,get_tokenizer,estimate_tokens
 from config.config import get_model
 
 
@@ -11,6 +11,8 @@ class ContextManager:
     messages: list = field(default_factory=list)
     
     tokenizer = get_tokenizer(get_model())
+    
+
     CONTEXT_WINDOW = get_context_window()
     threshold_tokens = int((CONTEXT_WINDOW * 80) / 100)   
     critical_tokens = int((CONTEXT_WINDOW * 95) / 100)  
@@ -20,9 +22,13 @@ class ContextManager:
         total = 0
         for msg in msgs:
             msg_str = json.dumps(msg,default=str, ensure_ascii=False)
-            token = len(self.tokenizer(msg_str))
-            total += token
-            
+            if self.tokenizer is None:
+
+                token = len(estimate_tokens(msg_str))
+                total += token
+            else:
+                token = len(self.tokenizer(msg_str))
+                total += token
         return total
     
     def prune(self, messages, keep_last=15, keep_critical=5):
@@ -43,7 +49,7 @@ class ContextManager:
         return pruned
     
     
-    def auto_prune(self,):
+    def auto_prune(self):
         pruned = self.prune(self.messages)
         if len(pruned) < len(self.messages):
             print("Pruning messages")
@@ -56,7 +62,7 @@ class ContextManager:
 
     def add_user_message(self, content: str):
         self.messages.append({"role": "user", "content": content})
-        self.auto_prune()  # FIX: actually call pruning (was never called before)
+        
             
 
     def add_assistant_text(self, content: str):
@@ -84,7 +90,7 @@ class ContextManager:
                 "name": tool_name,
                 "content": str(result)
             })
-        self.auto_prune()  # FIX: prune after tool result to keep context under limit
+       
         
          
     

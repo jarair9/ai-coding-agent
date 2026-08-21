@@ -1,19 +1,15 @@
-from __future__ import annotations
-from client.llm import llmClient
-from config.config import get_model
-from client.llm import manager
-from client.llm import handler
-
-from tui.Tui import TUI
+from client.llm_client import llmClient
+from config.config import get_model,get_available_model
+from client.llm_client import manager
+from client.llm_client import handler
+from tui.tui import TUI
 from rich.text import Text  
 import asyncio
 import os
 
 os.system('cls' if os.name == 'nt' else 'clear')
 
-
 llm = llmClient()
-
 
 tui = TUI()
 
@@ -33,53 +29,57 @@ async def main():
             print(usage)
             continue
          
-        
         elif user.startswith("/") and user == "/messages":
             messages = manager.messages
             other_msgs = [m for m in messages if m.get("role") != "system"]
             
             print(other_msgs)
             continue
-        
+        elif user.startswith("/") and user == "/help":
+            print("Feature comming soon.")
+            continue
+        elif user.startswith("/") and user == "/model":
+            available_models = get_available_model()
+            print(available_models)
+            model = input("Select Model (model name only not provider): ")
+            if model:
+                for provider in available_models.items:
+                    if model == provider.value():
+                        print("ture")
+            else:
+                continue
         manager.add_user_message(user)
-        tui.start_thinking()
+       
+        
         async for chunk in llm.streaming_response():
-            tui.stop_thinking()
+           
            
             if chunk["type"] == "reasoning":
-                if not tui._reasoning_active:
-                    tui.start_reasoning()
                 tui.print_reasoning(chunk["content"])
-
-            if chunk["type"] not in ("reasoning",) and tui._reasoning_active:
-                tui.stop_reasoning()
 
             if chunk["type"] == "text":
                 content = chunk["content"]
+                
                 tui.console.print(
                     Text(content, style="cyan"),
                     end=""
                 )
             
-
             elif chunk["type"] == "tool_call":
                 pending_tool_name = chunk["tool_call"]["tool_name"]
                 pending_tool_args = chunk["tool_call"]["tool_args"]
-                tui.start_tool_spinner(pending_tool_name)
-                
+              
                 
             elif chunk["type"] == "tool_result":
-                tui.stop_tool_spinner()
+               
                 print()
                 tool_result = chunk["tool_result"]
 
-                
                 if pending_tool_name == "read_file":
                     path = pending_tool_args["path"]
                     if isinstance(tool_result, list) and tool_result:
                         tool_result = tool_result[0]
                         
-                    
                     if isinstance(tool_result, dict) and tool_result.get("success"):
                         
                         content = tool_result.get("content") or tool_result.get("result")
@@ -95,21 +95,16 @@ async def main():
                     else:
                         tui.error(tool_result.get("error", "Read failed") if isinstance(tool_result, dict) else "Invalid tool result")
 
-
-
                 elif pending_tool_name == "write_file":
                     path = pending_tool_args.get("path", "unknown")
                     content = pending_tool_args.get("content" , "Empty")
                     
+                        
                     if not content or not path:
                         tui.error(tool_result.get("error", "Write failed"))
                     else:
                         tui.write_file(content=content,tool_name="write file",file_path=path)
                    
-
-
-                # the edit ui should be like old text in red colour and new in green
-                
                 elif pending_tool_name == "edit_file":
                     if pending_tool_args:
                         old_content = pending_tool_args.get("old_content","")
@@ -118,8 +113,6 @@ async def main():
                         tui.edit_file(old_content=old_content,new_content=new_content,file_path=file_path)
                     else:
                         tui.error(tool_result.get("error", "Edit failed"))
-
-
 
                 elif pending_tool_name == "list_dir":
                     if isinstance(tool_result, dict):
@@ -133,14 +126,11 @@ async def main():
                                     output_data = inner.get("output")
                             if output_data is None:
                                 output_data = []   
-                            tui.white_panel(output_data, title="list_dir")
+                            tui.list_files(output_data, title="list_dir")
                         else:
                             tui.error(tool_result.get("error", "List dir failed"))
                     else:
-                        tui.white_panel(str(tool_result), title="list_dir")
-                
-                
-                
+                        tui.list_files(str(tool_result), title="list_dir")
                 
                 elif pending_tool_name == "glob":
                     if isinstance(tool_result, dict):
@@ -149,13 +139,11 @@ async def main():
                             output = tool_result.get("output", "")
                             if not output:
                                 output = "[No files matched]"
-                            tui.white_panel(output, title="glob")
+                            tui.list_files(output, title="glob")
                         else:
                             tui.error(tool_result.get("error", "Glob failed"))
                     else:
-                        tui.white_panel(str(tool_result), title="glob")
-
-
+                        tui.list_files(str(tool_result), title="glob")
 
                 elif pending_tool_name == "grep":
                     if isinstance(tool_result, dict):
@@ -163,13 +151,12 @@ async def main():
                             output = tool_result.get("output", "")
                             if not output:
                                 output = "[No matches found]"
-                            tui.white_panel(output, title="grep")
+                            tui.list_files(output, title="grep")
                         else:
                             tui.error(tool_result.get("error", "Grep failed"))
                     else:
-                        tui.white_panel(str(tool_result), title="grep") 
-                        
-                        
+                        tui.list_files(str(tool_result), title="grep") 
+                  
                 elif pending_tool_name == "shell":
                     command = pending_tool_args.get("command","unknown")
                     tui.shell_panel(content=command,colour="cyan")
@@ -193,18 +180,17 @@ async def main():
                 break        
             elif chunk["type"] == "status":
                 tui.error(chunk["message"])
-                
-                
+              
             elif chunk["type"] == "error":
                 tui.error(chunk["error"])
 
-        tui.stop_thinking()
-        tui.stop_tool_spinner()
+
+
+
+        
         pending_tool_name = None
         pending_tool_args = None
 
-            
-          
 
 if __name__ == "__main__":
     asyncio.run(main())

@@ -14,6 +14,7 @@ class usage_tracker:
         cached_token
         ) -> None:
         
+        # Covering edge cases is important
         if prompt_tokens:
             self.prompt_token += prompt_tokens
         if completions_tokens:
